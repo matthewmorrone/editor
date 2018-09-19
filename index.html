@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Sweet</title>
+<title>Notes</title>
 <meta http-equiv="Access-Control-Allow-Origin" content="*">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <link rel="shortcut icon" type="image/x-icon" href="http://www.matthewmorrone.com/psi.ico" />
@@ -11,12 +11,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/css/bootstrap.min.css" />
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.0/css/font-awesome.min.css" />
-<script type="text/javascript" src="esprima.js"></script>
-<script type="text/javascript" src="escodegen.js"></script>
-<script type="text/javascript" src="estraverse.js"></script>
-
+<script type="text/javascript" src="js/esprima.js"></script>
+<script type="text/javascript" src="js/escodegen.js"></script>
+<script type="text/javascript" src="js/estraverse.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.1.1/webcomponents-hi.js"></script>
 <link rel="import" href="editor.html" />
-<style>
+<style>js/
 ::-webkit-scrollbar {
 	display: none;
 }
@@ -66,18 +66,46 @@ textarea:focus, input:focus, select:focus {
 .folder {
 	font-weight: bold;
 }
+#previewPane ul ul li {
+	padding-left: 30px;
+}
+.cm-em {
+    font-style: normal !important;
+}
 </style>
 </head>
 <body>
-
-<!-- <script type="text/javascript" src="starch.js"></script> -->
-<script type="text/javascript" src="require.js"></script>
-<script type="text/javascript" src="sweet.js"></script>
-<script type="text/javascript" src="cm.js"></script>
+<script type="text/javascript" src="js/require.js"></script>
+<script type="text/javascript" src="js/sweet.js"></script>
+<script type="text/javascript" src="js/cm.js"></script>
 <script>
 
-var log = console.log.bind(console)
+let log = console.log.bind(console)
+let defaultTitle = document.title
+String.prototype.toTitleCase = function() {
+	let i, j, str, lowers, uppers;
+	str = this.replace(/([^\W_]+[^\s-]*) */g, function(txt) {
+		return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+	});
 
+	// Certain minor words should be left lowercase unless
+	// they are the first or last words in the string
+	lowers = ['A', 'An', 'The', 'And', 'But', 'Or', 'For', 'Nor', 'As', 'At',
+	'By', 'For', 'From', 'In', 'Into', 'Near', 'Of', 'On', 'Onto', 'To', 'With'];
+	for (i = 0, j = lowers.length; i < j; i++)
+		str = str.replace(new RegExp('\\s' + lowers[i] + '\\s', 'g'),
+			function(txt) {
+				return txt.toLowerCase();
+			});
+
+	// Certain words such as initialisms or acronyms should be left uppercase
+	uppers = ['Id', 'Tv'];
+	for (i = 0, j = uppers.length; i < j; i++)
+		str = str.replace(new RegExp('\\b' + uppers[i] + '\\b', 'g'),
+			uppers[i].toUpperCase());
+
+	return str;
+}
 function updateFilelist(dir) {
 	$.post('/api/', {
 		mode: 'ls',
@@ -86,19 +114,22 @@ function updateFilelist(dir) {
 	}, function(d) {
 		$('#files').empty()
 		$("#files").attr('size', (d.length < 2 ? 2 : d.length))
-		for(var i = 0; i < d.length; i++) {
+		for(let i = 0; i < d.length; i++) {
 			$("#files").append($('<option></option>', {text: d[i], value: d[i], class: (d[i].includes('.') ? '' : 'folder')}))
 		}
 		if (localStorage.getItem('filename')) {
 			$('#files').val(localStorage.getItem('filename'))
+			$('#files').click()
 		}
 	}, 'json')
 }
 $(function() {
-	var dir = window.location.pathname+'notes'
+
+
+	let dir = window.location.pathname+'notes'
 	updateFilelist(dir)
-	requirejs(["sweet", "showdown"], function(sweet, showdown) {
-		var cms = [], vals = [], x, y, cm, i, id, cma
+	requirejs(["js/sweet", "js/showdown"], function(sweet, showdown) {
+		let cms = [], vals = [], x, y, cm, i, id, cma
 		$('.gen').click(function() {
 			$('textarea').each(function() {
 				vals[$(this).attr('id')] = $(this).val()
@@ -112,45 +143,34 @@ $(function() {
 				$('main').append($('<textarea></textarea>', {id: id, val: vals[id]}))
 			}
 			$('textarea').each(function(i) {
-				var cm = CodeMirror.fromTextArea($(this)[0], {
-					lineNumbers: true,
+				let cm = CodeMirror.fromTextArea($(this)[0], {
 					mode: {
 						name: "javascript",
 						globalVars: true
 					},
-					theme: 'default',
-					scrollbarStyle: null,
-					smartIndent: true,
+					autoCloseBrackets: true,
 					electricChars: true,
-					tabSize: 4,
+					foldGutter: true,
 					indentWithTabs: true,
 					inputStyle: "contenteditable",
-					showCursorWhenSelecting: true,
+					keyMap: 'sublime',
+					lineNumbers: true,
+					lineWiseCopyCut: true,
+					lineWrapping: true,
 					matchBrackets: true,
-					autoCloseBrackets: true,
-					foldGutter: true,
+					matchTags: true,
+					scrollbarStyle: null,
+					showCursorWhenSelecting: true,
+					showTrailingSpace: true,
+					smartIndent: true,
+					styleActiveLine: {nonEmpty: true},
+					tabSize: 4,
+					theme: 'default',
 					gutters: [
 						"CodeMirror-linenumbers",
 						"CodeMirror-foldgutter"
 					],
-					extraKeys: {
-						"Ctrl-Space": "test",
-						// "Ctrl-Space": "autocomplete",
-						"Enter": "newlineAndIndentContinueMarkdownList",
-						"Ctrl-Down": "swapLineDown",
-						"Ctrl-Enter": "insertLineBefore",
-						"Ctrl-F": "findUnder",
-						"Ctrl-F5": "sortLinesInsensitive",
-						"Ctrl-L": "splitSelectionByLine",
-						"Ctrl-Shift-L": "selectLine",
-						"Ctrl-Up": "swapLineUp",
-						"Ctrl-W": "wrapLines",
-						"F5": "sortLines",
-					},
-					styleActiveLine: {nonEmpty: true},
-					showTrailingSpace: true,
-					matchTags: true,
-					keyMap: 'sublime',
+					extraKeys: {},
 				})
 				cm.index = i+1
 				cms.push(cm)
@@ -184,13 +204,9 @@ $(function() {
 			CodeMirror.defineExtension('removeLine', function() {
 				log(this.getValue())
 			})
-
-
 			CodeMirror.commands['test'] = function(cm) {
 				cm.setValue(cm.getValue().replace(/\n$/, ''))
 				cm.setValue(cm.getValue().replace(/^\n/, ''))
-
-
 				// cm.eachLine(function(line) {
 				// 	log(line, cm.getLineNumber(line))
 				// 	if (!line.text) {
@@ -201,11 +217,8 @@ $(function() {
 				// 		// cms[1].replaceRange('', CodeMirror.Pos(cms[1].getLineNumber(line)))
 				// 		// cms[1].removeLine(cms[1].getLineNumber(line))
 				// 	}
-
 				// })
-
 			}
-
 			// $(document).on("click", '.toggle:not(:first-child)', function(e) {
 			// 	if ($(this).nextAll('.CodeMirror:first').width() === 0) {
 			// 		$(this).nextAll('.CodeMirror:first').animate({ width: (90/x)+'%' }, 1000)
@@ -236,7 +249,7 @@ $(function() {
 		$('#genx').click()
 
 		$('#indentStyle').change(function() {
-			var ws = $(this).val()
+			let ws = $(this).val()
 			cms.forEach(function(cm) {
 				if (ws === 'tabs') {
 					cm.setOption('indentWithTabs', true)
@@ -249,12 +262,15 @@ $(function() {
 		}).change()
 
 		$('#mode').change(function() {
-			var mode = $(this).val() || 'meta'
+			let mode = $(this).val() || 'meta'
 			$('#previewPane').remove()
 			if (!mode) return
 			$('#moder').remove()
-			var script = $('<script><\/script>', {src:'codemirror/mode/'+mode+'/'+mode+'.js', id: 'moder'})
-			$(document.head).append(script)
+			if (mode !== 'csv') {
+				let script = $('<script><\/script>', {src:'../codemirror/mode/'+mode+'/'+mode+'.js', id: 'moder'})
+				$(document.head).append(script)
+			}
+
 			if (cma) {
 				cma.setOption('mode', mode)
 			}
@@ -266,11 +282,11 @@ $(function() {
 		}).change()
 
 		$('#theme').change(function() {
-			var theme = $(this).val()
+			let theme = $(this).val()
 			if (!theme) return
 			localStorage.setItem('theme', theme)
 			$('#themer').remove()
-			var link = $('<link></link>', {rel: 'stylesheet', href:'codemirror/theme/'+theme+'.css', id: 'themer'})
+			let link = $('<link></link>', {rel: 'stylesheet', href:'../codemirror/theme/'+theme+'.css', id: 'themer'})
 			$(document.body).append(link)
 			if (cma) {
 				cma.setOption('theme', theme)
@@ -292,28 +308,30 @@ $(function() {
 		})
 
 		$('#compile').click(function() {
-			var prev = cms[0].getValue()
+			let prev = cms[0].getValue()
 			try {
 				cms[1].setValue(sweet.compile(cms[0].getValue()).code)
 			}
 			catch(e) {
 				cms[0].setValue(prev)
 			}
+
 		})
 
-		var oldLog = console.log;
-		console.log = function (message) {
-			cms[1].replaceRange(message+'\n', CodeMirror.Pos(cms[1].lastLine()))
-			cms[1].setValue(cms[1].getValue().replace(/\n\n$/, '\n'))
-			oldLog.apply(console, arguments);
-		};
+		// let oldLog = console.log;
+		// console.log = function (message) {
+		// 	cms[1].replaceRange(message+'\n', CodeMirror.Pos(cms[1].lastLine()))
+		// 	cms[1].setValue(cms[1].getValue().replace(/\n\n$/, '\n'))
+		// 	oldLog.apply(console, arguments);
+		// };
 
-		$('#run').mousedown(function() {
+		$('#run').click(function() {
 			if (cms[0].getOption('mode') === 'javascript') {
+				cms[1].setValue("")
 				eval(cms[0].getValue());
 			}
 		})
-		$('#run').click()
+		// $('#run').click()
 
 		// cms[1].on('gutterClick', function(cm, line, gutter) {
 		// 	if (gutter === 'CodeMirror-linenumbers') {
@@ -327,7 +345,36 @@ $(function() {
 		// 		return cm.setSelection(CodeMirror.Pos(line, 0), CodeMirror.Pos(line + 1, 0));
 		// 	}
 		// });
-		var converter = new showdown.Converter({
+
+
+
+		let extensions = function () {
+			return [{
+				type: 'lang',
+				regex: /https?:\/\/en.wikipedia.org\/wiki\/(.+)\/?/g,
+				replace: function(url, title) {
+					return '<a href="http://en.wikipedia.org/wiki/' + title + '">' + title.replace(/[\\_]+/g, ' ').toTitleCase() + '</a>';
+				}
+			},
+			{
+				type: 'lang',
+				regex: /- (.+)/g,
+				replace: function (match, line) {
+					return '<li><del>' + line + '</del></li>';
+				}
+			},
+			{
+				type: 'lang',
+				regex: /(.+?)\|https?:\/\/(.+)\/?/g,
+				replace: function (text, title, path) {
+					return '<a href="https://'+path+'">' + title + '</a>';
+				}
+			}];
+		};
+
+
+
+		let converter = new showdown.Converter({
 			excludeTrailingPunctuationFromURLs: true,
 			simplifiedAutoLink: true,
 			strikethrough: true,
@@ -336,29 +383,33 @@ $(function() {
 			smoothLivePreview: true,
 			encodeEmails: true,
 			ghMentions: true,
-			ghMentionsLink: 'https://www.matthewmorrone.com/{u}'
+			ghMentionsLink: 'https://www.matthewmorrone.com/{u}',
+			extensions: [extensions],
 		})
+
 		$("#filename").focus(function() {
 			$('#files option:selected').prop("selected", false).removeAttr("selected")
 			cms[0].setValue('')
 		}).blur(function() {
-			var filename = $(this).val()
+			let filename = $(this).val()
 
-			var ext = filename.split('.').slice(-1) || ''
+			let ext = filename.split('.').slice(-1) || ''
 			$('#mode').val(extensions[ext] || '').change()
 		})
 		$("#files").click(function() {
-			var filename = $(this).val()
+			let filename = $(this).val()
 			if (!filename) {return}
 			localStorage.setItem('filename', filename)
-			var ext = filename.split('.').slice(-1) || ''
-			var handle = dir+'/'+filename
+			let ext = filename.split('.').slice(-1) || ''
+			let handle = dir+'/'+filename
 			$.post('/api/', {
 				mode: 'read',
 				handle: handle
 			}, function(d) {
 				cms[0].setValue(d)
+				cms[0].setOption('lineWrapping', localStorage.getItem('lineWrapping'))
 				cms[1].setValue('')
+
 				cms[0].execCommand('test')
 				$('#mode').val(extensions[ext] || '').change()
 				if (cms[0].getOption('mode') === 'htmlmixed') {
@@ -366,15 +417,25 @@ $(function() {
 						top: cms[1].display.wrapper.offsetTop,
 						left: cms[1].display.wrapper.offsetLeft+cms[1].display.gutters.offsetWidth+1
 					})
+					document.title = defaultTitle
 				}
 				if (cms[0].getOption('mode') === 'markdown') {
+					cms[1].setOption("lineNumbers", false)
+					document.title = converter.makeHtml(cms[0].getLine(0).replace(/<\/?[^>]+(>|$)/g, "")).replace(/<\/?[^>]+(>|$)/g, "").toTitleCase()
+
 					preview(converter.makeHtml(cms[0].getValue()), {
 						top: cms[1].display.wrapper.offsetTop,
 						left: cms[1].display.wrapper.offsetLeft+cms[1].display.gutters.offsetWidth+1
 					})
 				}
+				else {
+					cms[1].setOption("lineNumbers", true)
+				}
+				$('#run').click()
+
 			}, 'text')
 		}).click()
+
 		if (localStorage.getItem('theme')) {
 			$('#theme').val(localStorage.getItem('theme')).change()
 		}
@@ -382,10 +443,10 @@ $(function() {
 			$('#files').val(localStorage.getItem('filename')).click().focus()
 		}
 
-		CodeMirror.on(cms[0], 'keyup', function() {
-			var filename = $('#filename').val() || $('#files').val()
+		$('#del').click(function() {
+			let filename = $('#filename').val() || $('#files').val()
 			if (!filename) {return}
-			var handle = dir+'/'+filename
+			let handle = dir+'/'+filename
 			if (cms[0].getValue().trim() === "") {
 				$.post('/api/', {
 					mode: 'rm',
@@ -395,38 +456,68 @@ $(function() {
 					updateFilelist(dir)
 				}, 'text')
 			}
-			else {
-				$.post('/api/', {
-					mode: 'write',
-					handle: handle,
-					content: cms[0].getValue()
-				}, function(d) {
-					$('#filename').val('')
-					localStorage.setItem('filename', filename)
-					updateFilelist(dir)
-				}, 'text')
-				var offset = {
-					top: cms[1].display.wrapper.offsetTop,
-					left: cms[1].display.wrapper.offsetLeft+cms[1].display.gutters.offsetWidth+1
-				}
-				if (cms[0].getOption('mode') === 'htmlmixed') {
-					preview(cms[0].getValue(), offset)
-				}
-				if (cms[0].getOption('mode') === 'markdown') {
-					preview(converter.makeHtml(cms[0].getValue()), offset)
-				}
+		})
+		$('#wrap').click(function() {
+			cms[0].setOption('lineWrapping', !cms[0].getOption('lineWrapping'))
+			localStorage.setItem('lineWrapping', cms[0].getOption('lineWrapping'))
+		})
+		CodeMirror.on(cms[0], 'gutterClick', function(cm, lineNo, g, e) {
+			let line = cms[0].getLine(lineNo)
+			if (line.match(/- (.+)/)) {
+				cms[0].replaceRange(line.replace(/- (.+)/, "+ $1"), {line: lineNo, ch: 0}, {line: lineNo, ch: line.length})
 			}
+			if (line.match(/\+ (.+)/)) {
+				cms[0].replaceRange(line.replace(/\+ (.+)/, "- $1"), {line: lineNo, ch: 0}, {line: lineNo, ch: line.length})
+			}
+			CodeMirror.signal(cms[0], 'keyup')
+
+		})
+
+		CodeMirror.on(cms[0], 'keyup', function() {
+			let filename = $('#filename').val() || $('#files').val()
+			if (!filename) {return}
+			let handle = dir+'/'+filename
+
+			$.post('/api/', {
+				mode: 'write',
+				handle: handle,
+				content: cms[0].getValue()
+			}, function(d) {
+				$('#filename').val('')
+				localStorage.setItem('filename', filename)
+				updateFilelist(dir)
+			}, 'text')
+			let offset = {
+				top: cms[1].display.wrapper.offsetTop,
+				left: cms[1].display.wrapper.offsetLeft+cms[1].display.gutters.offsetWidth+1
+			}
+			cms[1].setOption("lineNumbers", true)
+			// if (cms[0].getOption('mode') === 'htmlmixed') {
+			// 	preview(cms[0].getValue(), offset)
+			// }
+			if (cms[0].getOption('mode') === 'markdown') {
+				cms[1].setOption("lineNumbers", false)
+				document.title = converter.makeHtml(cms[0].getLine(0).replace(/<\/?[^>]+(>|$)/g, "")).replace(/<\/?[^>]+(>|$)/g, "").toTitleCase()
+				preview(converter.makeHtml(cms[0].getValue()), offset)
+			}
+			// console.log(cms[0].getOption('mode'))
+			// if (cms[0].getOption('mode') === 'csv') {
+			// 	let data = cms[0].getValue()
+			// 	console.log(data)
+			// }
 		})
 		function preview(content, offset) {
+			document.title = converter.makeHtml(cms[0].getLine(0).replace(/<\/?[^>]+(>|$)/g, "")).replace(/<\/?[^>]+(>|$)/g, "").toTitleCase()
 			$("#previewPane").remove()
-			var element = $("<div>", {id: 'previewPane', html: content}).css({
+			let element = $("<div>", {id: 'previewPane', html: content}).css({
 				position: 'absolute',
 				width: '50%',
-				height: '50%',
+				height: '100%',
 				display: 'block',
-				top: offset.top,
-				left: offset.left,
+				top: offset.top+5,
+				left: offset.left+5,
 				zIndex: 1,
+				overflowY: "scroll",
 			})
 			$(document.body).append(element)
 		}
@@ -450,20 +541,34 @@ $(function() {
 	<option value='tabs' selected>Tabs</option>
 </select> -->
 <select id='mode'>
-	<option></option>
+	<option value='markdown'>markdown</option>
+	<option value='htmlembedded'>htmlembedded</option>
+	<option value='htmlmixed'>htmlmixed</option>
+	<option value='csv'>csv</option>
+	<option value='txt'>txt</option>
+	<option value='clike'>clike</option>
+	<option value='css'>css</option>
+	<option value='haml'>haml</option>
+	<option value='javascript'>javascript</option>
+	<option value='php'>php</option>
+	<option value='powershell'>powershell</option>
+	<option value='python'>python</option>
+	<option value='spreadsheet'>spreadsheet</option>
+	<option value='sql'>sql</option>
+	<option value='textile'>textile</option>
+	<option value='xml'>xml</option>
+	<option value='yaml'>yaml</option>
 	<option value='apl'>apl</option>
 	<option value='asciiarmor'>asciiarmor</option>
 	<option value='asn.1/asn'>asn</option>
 	<option value='asterisk'>asterisk</option>
 	<option value='brainfuck'>brainfuck</option>
-	<option value='clike'>clike</option>
 	<option value='clojure'>clojure</option>
 	<option value='cmake'>cmake</option>
 	<option value='cobol'>cobol</option>
 	<option value='coffeescript'>coffeescript</option>
 	<option value='commonlisp'>commonlisp</option>
 	<option value='crystal'>crystal</option>
-	<option value='css'>css</option>
 	<option value='cypher'>cypher</option>
 	<option value='d'>d</option>
 	<option value='dart'>dart</option>
@@ -486,22 +591,17 @@ $(function() {
 	<option value='gherkin'>gherkin</option>
 	<option value='go'>go</option>
 	<option value='groovy'>groovy</option>
-	<option value='haml'>haml</option>
 	<option value='handlebars'>handlebars</option>
 	<option value='haskell-literate/haskell'>haskell-literate</option>
 	<option value='haskell'>haskell</option>
 	<option value='haxe'>haxe</option>
-	<option value='htmlembedded'>htmlembedded</option>
-	<option value='htmlmixed'>htmlmixed</option>
 	<option value='http'>http</option>
 	<option value='idl'>idl</option>
-	<option value='javascript'>javascript</option>
 	<option value='jinja2'>jinja2</option>
 	<option value='jsx'>jsx</option>
 	<option value='julia'>julia</option>
 	<option value='livescript'>livescript</option>
 	<option value='lua'>lua</option>
-	<option value='markdown'>markdown</option>
 	<option value='mathematica'>mathematica</option>
 	<option value='mbox'>mbox</option>
 	<option value='meta'>meta</option>
@@ -518,14 +618,11 @@ $(function() {
 	<option value='pascal'>pascal</option>
 	<option value='pegjs'>pegjs</option>
 	<option value='perl'>perl</option>
-	<option value='php'>php</option>
 	<option value='pig'>pig</option>
-	<option value='powershell'>powershell</option>
 	<option value='properties'>properties</option>
 	<option value='protobuf'>protobuf</option>
 	<option value='pug'>pug</option>
 	<option value='puppet'>puppet</option>
-	<option value='python'>python</option>
 	<option value='q'>q</option>
 	<option value='r'>r</option>
 	<option value='rpm'>rpm</option>
@@ -543,13 +640,10 @@ $(function() {
 	<option value='solr'>solr</option>
 	<option value='soy'>soy</option>
 	<option value='sparql'>sparql</option>
-	<option value='spreadsheet'>spreadsheet</option>
-	<option value='sql'>sql</option>
 	<option value='stex'>stex</option>
 	<option value='stylus'>stylus</option>
 	<option value='swift'>swift</option>
 	<option value='tcl'>tcl</option>
-	<option value='textile'>textile</option>
 	<option value='toml'>toml</option>
 	<option value='tornado'>tornado</option>
 	<option value='troff'>troff</option>
@@ -564,65 +658,69 @@ $(function() {
 	<option value='vhdl'>vhdl</option>
 	<option value='vue'>vue</option>
 	<option value='webidl'>webidl</option>
-	<option value='xml'>xml</option>
 	<option value='xquery'>xquery</option>
 	<option value='yacas'>yacas</option>
 	<option value='yaml-frontmatter'>yaml-frontmatter</option>
-	<option value='yaml'>yaml</option>
 	<option value='z80'>z80</option>
 </select>
 <select id='theme'>
-	<option value='3024-day'>3024-day</option>
-	<option value='3024-night'>3024-night</option>
-	<option value='abcdef'>abcdef</option>
-	<option value='ambiance'>ambiance</option>
-	<option value='ambiance-mobile'>ambiance-mobile</option>
-	<option value='base16-dark'>base16-dark</option>
-	<option value='base16-light'>base16-light</option>
-	<option value='bespin'>bespin</option>
-	<option value='blackboard'>blackboard</option>
-	<option value='cobalt'>cobalt</option>
-	<option value='colorforth'>colorforth</option>
-	<option value='dracula'>dracula</option>
-	<option value='duotone-dark'>duotone-dark</option>
-	<option value='duotone-light'>duotone-light</option>
-	<option value='eclipse' selected>eclipse</option>
-	<option value='elegant'>elegant</option>
-	<option value='erlang-dark'>erlang-dark</option>
-	<option value='hopscotch'>hopscotch</option>
-	<option value='icecoder'>icecoder</option>
-	<option value='isotope'>isotope</option>
-	<option value='lesser-dark'>lesser-dark</option>
-	<option value='liquibyte'>liquibyte</option>
-	<option value='material'>material</option>
-	<option value='mbo'>mbo</option>
-	<option value='mdn-like'>mdn-like</option>
-	<option value='midnight'>midnight</option>
-	<option value='monokai'>monokai</option>
-	<option value='neat'>neat</option>
-	<option value='neo'>neo</option>
-	<option value='night'>night</option>
-	<option value='panda-syntax'>panda-syntax</option>
-	<option value='paraiso-dark'>paraiso-dark</option>
-	<option value='paraiso-light'>paraiso-light</option>
-	<option value='pastel-on-dark'>pastel-on-dark</option>
-	<option value='railscasts'>railscasts</option>
-	<option value='rubyblue'>rubyblue</option>
-	<option value='seti'>seti</option>
-	<option value='solarized'>solarized</option>
-	<option value='the-matrix'>the-matrix</option>
-	<option value='tomorrow-night-bright'>tomorrow-night-bright</option>
-	<option value='tomorrow-night-eighties'>tomorrow-night-eighties</option>
-	<option value='ttcn'>ttcn</option>
-	<option value='twilight'>twilight</option>
-	<option value='vibrant-ink'>vibrant-ink</option>
-	<option value='xq-dark'>xq-dark</option>
-	<option value='xq-light'>xq-light</option>
-	<option value='yeti'>yeti</option>
-	<option value='zenburn'>zenburn</option>
+	<optgroup label="Light">
+		<option value='3024-day'>3024-day</option>
+		<option value='ambiance-mobile'>ambiance-mobile</option>
+		<option value='base16-light'>base16-light</option>
+		<option value='duotone-light'>duotone-light</option>
+		<option value='eclipse' selected>eclipse</option>
+		<option value='elegant'>elegant</option>
+		<option value='mdn-like'>mdn-like</option>
+		<option value='neat'>neat</option>
+		<option value='neo'>neo</option>
+		<option value='paraiso-light'>paraiso-light</option>
+		<option value='solarized'>solarized</option>
+		<option value='ttcn'>ttcn</option>
+		<option value='xq-light'>xq-light</option>
+		<option value='yeti'>yeti</option>
+	</optgroup>
+	<optgroup label="Dark">
+		<option value='3024-night'>3024-night</option>
+		<option value='abcdef'>abcdef</option>
+		<option value='ambiance'>ambiance</option>
+		<option value='base16-dark'>base16-dark</option>
+		<option value='bespin'>bespin</option>
+		<option value='blackboard'>blackboard</option>
+		<option value='cobalt'>cobalt</option>
+		<option value='colorforth'>colorforth</option>
+		<option value='dracula'>dracula</option>
+		<option value='duotone-dark'>duotone-dark</option>
+		<option value='erlang-dark'>erlang-dark</option>
+		<option value='hopscotch'>hopscotch</option>
+		<option value='icecoder'>icecoder</option>
+		<option value='isotope'>isotope</option>
+		<option value='lesser-dark'>lesser-dark</option>
+		<option value='liquibyte'>liquibyte</option>
+		<option value='material'>material</option>
+		<option value='mbo'>mbo</option>
+		<option value='midnight'>midnight</option>
+		<option value='monokai'>monokai</option>
+		<option value='night'>night</option>
+		<option value='panda-syntax'>panda-syntax</option>
+		<option value='paraiso-dark'>paraiso-dark</option>
+		<option value='pastel-on-dark'>pastel-on-dark</option>
+		<option value='railscasts'>railscasts</option>
+		<option value='rubyblue'>rubyblue</option>
+		<option value='seti'>seti</option>
+		<option value='the-matrix'>the-matrix</option>
+		<option value='tomorrow-night-bright'>tomorrow-night-bright</option>
+		<option value='tomorrow-night-eighties'>tomorrow-night-eighties</option>
+		<option value='twilight'>twilight</option>
+		<option value='vibrant-ink'>vibrant-ink</option>
+		<option value='xq-dark'>xq-dark</option>
+		<option value='zenburn'>zenburn</option>
+	</optgroup>
 </select>
-<!-- <button id='compile'>Compile</button> -->
+<button id='compile'>Compile</button>
 <button id='run'>Run</button>
+<button id='wrap'>Wrap</button>
+<button id='del'>Delete</button>
 </nav>
 <main>
 <div id='tree'>
@@ -630,6 +728,5 @@ $(function() {
 <select id='files' size=4></select>
 </div>
 </main>
-
 </body>
 </html>
