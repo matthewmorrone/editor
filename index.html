@@ -1,6 +1,10 @@
 <html>
 <head>
+<<<<<<< HEAD
 <title>Notes</title>
+=======
+<title>Sweet Editor</title>
+>>>>>>> 03478c048500fa8d71f78fecc6a4b2fdaf08d8ba
 <meta http-equiv="Access-Control-Allow-Origin" content="*">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <link rel="shortcut icon" type="image/x-icon" href="http://www.matthewmorrone.com/psi.ico" />
@@ -344,9 +348,6 @@ $(function() {
 		// 	if (gutter === 'CodeMirror-linenumbers') {
 		// 		return cm.setSelection(CodeMirror.Pos(line, 0), CodeMirror.Pos(line + 1, 0));
 		// 	}
-		// });
-
-
 
 		let extensions = function () {
 			return [{
@@ -506,6 +507,13 @@ $(function() {
 			// 	console.log(data)
 			// }
 		})
+		window.addEventListener('resize keydown', function(event){
+			if (e.which === 123) {
+				$(document.body).append($("#previewPane").detach())
+			}
+			$(document.body).append($("#previewPane").detach())
+
+		});
 		function preview(content, offset) {
 			document.title = converter.makeHtml(cms[0].getLine(0).replace(/<\/?[^>]+(>|$)/g, "")).replace(/<\/?[^>]+(>|$)/g, "").toTitleCase()
 			$("#previewPane").remove()
@@ -522,7 +530,33 @@ $(function() {
 			$(document.body).append(element)
 		}
 	});
-})
+
+
+});
+
+(function() {
+    var throttle = function(type, name, obj) {
+        obj = obj || window;
+        var running = false;
+        var func = function() {
+            if (running) { return; }
+            running = true;
+             requestAnimationFrame(function() {
+                obj.dispatchEvent(new CustomEvent(name));
+                running = false;
+            });
+        };
+        obj.addEventListener(type, func);
+    };
+
+    /* init - you can init any event */
+    throttle("resize", "optimizedResize");
+})();
+
+// handle event
+window.addEventListener("optimizedResize", function() {
+    console.log("Resource conscious resize callback!");
+});
 </script>
 <nav>
 <input type='number' value='2' min='1' max='4' id='genx' class='gen' />
